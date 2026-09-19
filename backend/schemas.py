@@ -168,3 +168,8 @@ class ProgressRequest(BaseModel):
     minutes: int = 0
 
     payload: dict[str, Any] = {}
+class FlashcardRequest(BaseModel):
+    user_id:str 
+    topic:str 
+    material:str 
+    num_cards: int=5

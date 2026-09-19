@@ -1,164 +1,157 @@
-from ai_service import (
-    SYSTEM_PROMPT,
-    call_llm,
-    extract_json
-)
+import os
+from typing import Any
+
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
 
 
-class QuizAgent:
+def _get_value(request: Any, *names: str, default: str = ""):
+    for name in names:
+        if isinstance(request, dict):
+            value = request.get(name)
+        else:
+            value = getattr(request, name, None)
 
-    name = "quiz_agent"
+        if value is not None:
+            return value
 
-
-    async def run(
-        self,
-        topic,
-        context,
-        count,
-        difficulty
-    ):
-
-        material = "\n\n".join(
-            chunk["text"]
-            for chunk in context
-        )
+    return default
 
 
-        prompt = f"""
-Create {count} multiple-choice questions
-about:
+def generate_quiz(request: Any):
+    """
+    Generate a quiz using OpenAI.
+    Works with dictionaries as well as Pydantic request objects.
+    """
 
+    topic = _get_value(
+        request,
+        "topic",
+        "title",
+        "subject",
+        "topic_name",
+        default="General Knowledge",
+    )
+
+    text = _get_value(
+        request,
+        "text",
+        "content",
+        "material",
+        "notes",
+        "source_text",
+        default="",
+    )
+
+    number = _get_value(
+        request,
+        "number",
+        "count",
+        "num_questions",
+        "question_count",
+        default="5",
+    )
+
+    difficulty = _get_value(
+        request,
+        "difficulty",
+        "level",
+        default="medium",
+    )
+
+    try:
+        number = int(number)
+    except (TypeError, ValueError):
+        number = 5
+
+    number = max(1, min(number, 20))
+
+    text = str(text or "").strip()
+
+    if not text:
+        text = f"Create a quiz about {topic}."
+
+    text = text[:30000]
+
+    api_key = os.getenv("OPENAI_API_KEY")
+
+    if not api_key:
+        return {
+            "success": False,
+            "error": "OPENAI_API_KEY is not configured.",
+            "topic": topic,
+            "questions": [],
+        }
+
+    if OpenAI is None:
+        return {
+            "success": False,
+            "error": "OpenAI package is not installed. Run: pip install openai",
+            "topic": topic,
+            "questions": [],
+        }
+
+    prompt = f"""
+You are StudySync AI, an educational quiz generator.
+
+Create a quiz for a student.
+
+Topic:
 {topic}
 
+Study material:
+{text}
+
+Number of questions:
+{number}
 
 Difficulty:
-
 {difficulty}
 
+Return exactly {number} multiple-choice questions.
 
-Use only the supplied study material.
+For every question provide:
 
+Question:
+A)
+B)
+C)
+D)
+Answer:
+Explanation:
 
-STUDY MATERIAL:
+Make sure the correct answer is supported by the supplied study material whenever study material is provided.
 
-{material}
-
-
-Return JSON:
-
-{{
-    "questions": [
-
-        {{
-            "question": "question",
-
-            "options": [
-                "A",
-                "B",
-                "C",
-                "D"
-            ],
-
-            "answer": "correct option",
-
-            "explanation":
-                "short explanation"
-        }}
-
-    ]
-}}
+Do not add unnecessary introductory text.
 """
 
+    try:
+        client = OpenAI(api_key=api_key)
 
-        raw = await call_llm(
-            [
-                {
-                    "role": "system",
-                    "content": SYSTEM_PROMPT
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
+        response = client.responses.create(
+            model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
+            input=prompt,
         )
 
-
-        result = extract_json(raw)
-
-
-        if result:
-
-            return result
-
+        quiz = response.output_text.strip()
 
         return {
-            "questions": []
+            "success": True,
+            "topic": topic,
+            "questions": quiz,
+            "error": None,
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "topic": topic,
+            "questions": [],
+            "error": str(e),
         }
 
 
-    async def flashcards(
-        self,
-        topic,
-        context,
-        count
-    ):
-
-        material = "\n\n".join(
-            chunk["text"]
-            for chunk in context
-        )
-
-
-        prompt = f"""
-Create {count} study flashcards
-for the topic:
-
-{topic}
-
-
-Use only this material:
-
-{material}
-
-
-Return JSON:
-
-{{
-    "cards": [
-
-        {{
-            "question": "question",
-            "answer": "answer"
-        }}
-
-    ]
-}}
-"""
-
-
-        raw = await call_llm(
-            [
-                {
-                    "role": "system",
-                    "content": SYSTEM_PROMPT
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
-        )
-
-
-        result = extract_json(raw)
-
-
-        if result:
-
-            return result
-
-
-        return {
-            "cards": []
-        }
+async def generate_quiz_async(request: Any):
+    return generate_quiz(request)

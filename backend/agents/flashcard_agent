@@ -1,0 +1,133 @@
+import os
+from typing import Any
+
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
+
+
+def _get_value(request: Any, *names: str, default: str = ""):
+    for name in names:
+        if isinstance(request, dict):
+            value = request.get(name)
+        else:
+            value = getattr(request, name, None)
+
+        if value is not None:
+            return value
+
+    return default
+
+
+def generate_flashcards(request: Any):
+    topic = _get_value(
+        request,
+        "topic",
+        "title",
+        "subject",
+        "topic_name",
+        default="General Knowledge",
+    )
+
+    text = _get_value(
+        request,
+        "text",
+        "content",
+        "material",
+        "notes",
+        "source_text",
+        default="",
+    )
+
+    number = _get_value(
+        request,
+        "number",
+        "count",
+        "num_cards",
+        "card_count",
+        default="10",
+    )
+
+    try:
+        number = int(number)
+    except (TypeError, ValueError):
+        number = 10
+
+    number = max(1, min(number, 30))
+
+    text = str(text or "").strip()
+
+    if not text:
+        text = f"Create flashcards about {topic}."
+
+    text = text[:30000]
+
+    api_key = os.getenv("OPENAI_API_KEY")
+
+    if not api_key:
+        return {
+            "success": False,
+            "error": "OPENAI_API_KEY is not configured.",
+            "topic": topic,
+            "flashcards": [],
+        }
+
+    if OpenAI is None:
+        return {
+            "success": False,
+            "error": "OpenAI package is not installed. Run: pip install openai",
+            "topic": topic,
+            "flashcards": [],
+        }
+
+    prompt = f"""
+You are StudySync AI, an educational flashcard generator.
+
+Create {number} useful study flashcards.
+
+Topic:
+{topic}
+
+Study material:
+{text}
+
+For every flashcard provide:
+
+Question:
+Answer:
+
+Keep the questions clear and useful for studying.
+Keep answers concise but accurate.
+Use the supplied study material when it is provided.
+Do not add unnecessary introductory text.
+"""
+
+    try:
+        client = OpenAI(api_key=api_key)
+
+        response = client.responses.create(
+            model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
+            input=prompt,
+        )
+
+        flashcards = response.output_text.strip()
+
+        return {
+            "success": True,
+            "topic": topic,
+            "flashcards": flashcards,
+            "error": None,
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "topic": topic,
+            "flashcards": [],
+            "error": str(e),
+        }
+
+
+async def generate_flashcards_async(request: Any):
+    return generate_flashcards(request)
