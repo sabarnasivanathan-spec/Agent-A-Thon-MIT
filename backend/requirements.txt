@@ -11,3 +11,8 @@ python-multipart
 pypdf
 python-pptx
 python-docx
+fastapi
+uvicorn[standard]
+httpx
+python-dotenv
+pydantic
