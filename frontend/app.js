@@ -345,7 +345,7 @@ function addRevision(t) {
    backend call throws (offline, down, etc.) each method falls
    back to the local mock so a demo never breaks.
    ============================================================ */
-const AI_CONFIG = { useBackend: true, baseUrl: "http://127.0.0.1:8000" };
+const AI_CONFIG = { useBackend: true, baseUrl: "https://agent-a-thon-mit.onrender.com" };
 function wait(ms) { return new Promise(res => setTimeout(res, ms)); }
 async function callBackend(path, payload) {
   const res = await fetch(AI_CONFIG.baseUrl + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
