@@ -15,3 +15,7 @@ Unlike a basic timetable generator, StudySync AI follows an **interactive, agent
 ## Goal
 
 The goal of StudySync AI is to reduce the stress of figuring out **what to study, when to study, and how to recover when a student falls behind**, by providing a personalized and continuously adaptable academic plan.
+<img width="791" height="865" alt="image" src="https://github.com/user-attachments/assets/23a97fa1-739b-4bab-8efd-188fe2980616" />
+<img width="1918" height="867" alt="image" src="https://github.com/user-attachments/assets/92e47003-5b60-4e5b-8e9b-d494e1f1e9f9" />
+<img width="1919" height="904" alt="image" src="https://github.com/user-attachments/assets/c8e66473-b204-423b-8143-85ba929b85a6" />
+
