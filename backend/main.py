@@ -376,23 +376,30 @@ Keep the response clear and easy to revise.
 
 @app.on_event("startup")
 async def startup_event():
-
     print("")
     print("==========================================")
     print("        StudySync AI Backend")
     print("==========================================")
+
+    if client is None:
+        raise RuntimeError(
+            "OPENAI_API_KEY is missing. "
+            "StudySync cannot run without the AI agent."
+        )
+
+    try:
+        # Verify that the AI service is actually reachable.
+        client.models.list()
+        print("AI agent connection: OK")
+    except Exception as e:
+        print("AI agent connection: FAILED")
+        raise RuntimeError(
+            f"StudySync cannot start because the AI agent is unreachable: {e}"
+        )
+
     print(" FastAPI server started")
-    print(
-        f" OpenAI configured: {client is not None}"
-    )
-    print(" Endpoints:")
-    print("   POST /ask")
-    print("   POST /notes")
-    print("   POST /quiz")
-    print("   POST /flashcards")
-    print("   POST /study")
+    print(" AI agent required: YES")
     print("==========================================")
-    print("")
 @app.post("/ai/notes")
 def ai_notes(request: NotesRequest):
     prompt = f"""
