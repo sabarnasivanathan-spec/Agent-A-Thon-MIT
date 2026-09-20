@@ -429,31 +429,65 @@ def ai_chat(request: dict):
     history = request.get("history", [])
     context = request.get("context", {})
 
+    subjects = context.get("subjects", [])
+
+    material_sections = []
+
+    for subject in subjects:
+        subject_name = subject.get("name", "Unknown subject")
+
+        for material in subject.get("materials", []):
+            name = material.get("name", "Unnamed material")
+            text = material.get("text", "")
+
+            if text.strip():
+                material_sections.append(
+                    f"""
+SUBJECT: {subject_name}
+MATERIAL: {name}
+
+{text}
+"""
+                )
+
+    materials_text = "\n".join(material_sections)
+
     prompt = f"""
 You are StudySync AI, an educational study assistant.
 
-Student message:
+IMPORTANT:
+The student's uploaded study materials are the primary source for answering
+questions about their coursework.
+
+Use the uploaded material below when answering the student's question.
+Do not claim information is present in the material if it is not there.
+If the material does not contain enough information to answer the question,
+say that clearly instead of inventing an answer.
+
+UPLOADED STUDY MATERIALS:
+{materials_text}
+
+STUDENT MESSAGE:
 {message}
 
-Student context:
+STUDENT CONTEXT:
 {context}
 
-Previous conversation:
+PREVIOUS CONVERSATION:
 {history}
 
 Help the student clearly and accurately.
 
-You can help with:
-- explaining study topics
-- making notes
-- quizzes
-- previous-year questions
-- study planning
-- backlog
-- exam preparation
+You can:
+- explain topics from the uploaded material
+- answer questions using the uploaded material
+- summarize material
+- make study notes
+- create quizzes
+- explain difficult concepts
+- help with exam preparation
 
-Do not invent information that is not supported by the student's material/context.
-Return a helpful concise answer.
+Keep the answer concise but useful.
 """
 
     result = ask_openai(prompt)

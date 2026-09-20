@@ -903,7 +903,26 @@ function chatContext() {
   const ctx = {
     page: ui.page, pageTitle: CW_PAGES[ui.page] || ui.page,
     student: { name: u.profile.name, course: u.profile.course },
-    subjects: u.profile.subjects.map(s => ({ id: s.id, name: s.name, materials: s.files.filter(f => f.status === "ok").length + ((s.paste || "").trim() ? 1 : 0), pastPapers: (s.pyqFiles || []).filter(f => f.status === "ok").length + ((s.pyqPaste || "").trim() ? 1 : 0) })),
+    subjects: u.profile.subjects.map(s => ({
+  id: s.id,
+  name: s.name,
+
+  materials: [
+    ...s.files
+      .filter(f => f.status === "ok" && f.text)
+      .map(f => ({
+        name: f.name,
+        text: f.text.slice(0, 30000)
+      })),
+
+    ...((s.paste || "").trim()
+      ? [{ name: "Pasted material", text: s.paste.slice(0, 30000) }]
+      : [])
+  ],
+
+  pastPapers: (s.pyqFiles || []).filter(f => f.status === "ok").length
+    + ((s.pyqPaste || "").trim() ? 1 : 0)
+})),
     exam: ex ? { name: ex.name, date: ex.date, daysLeft: daysBetween(today(), ex.date) } : null,
     planStatus: P ? P.status : "none", topicCount: u.topics.length,
     importantTopics: u.topics.filter(t => t.important).map(t => t.title).slice(0, 8),
